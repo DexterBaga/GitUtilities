@@ -13,39 +13,33 @@ namespace GitUtils
 {
     public static class WebConfigUtilities
     {
-        public static void ResetCredentials(string webConfigPath,string userName="",string password="")
+        public static UpdatedConnectionStrings ResetCredentials(string webConfigPath,string userName="",string password="",string connectionStringName="")
         {
+            var connectionStringItems = new UpdatedConnectionStrings();
+
             if(!File.Exists(webConfigPath))
                 throw new Exception($"{webConfigPath} does not exist");
             var webConfiguration = GetWebConfigurationFromFile(webConfigPath);
 
-            var connectionStringSettingsCollection = ((ConnectionStringsSection)webConfiguration.GetSection("connectionStrings")).ConnectionStrings;
+            ConnectionStringSettingsCollection connectionStringSettingsCollection = ((ConnectionStringsSection)webConfiguration.GetSection("connectionStrings")).ConnectionStrings;
 
-            foreach (ConnectionStringSettings setting in connectionStringSettingsCollection)
+            var connectionStringSettings =
+                connectionStringSettingsCollection.Cast<ConnectionStringSettings>()
+                    .AsQueryable()
+                    .Where(x => x.Name == connectionStringName || connectionStringName == string.Empty);
+            
+
+            foreach (ConnectionStringSettings setting in connectionStringSettings)
             {
-                
                 if (!IsEntityFrameworkConnectionString(setting.ConnectionString)) continue;
 
                 setting.ConnectionString =  UpdateUserPasswordInConnectionString(setting.ConnectionString, userName, password);
-
+                connectionStringItems.Add(setting.Name);
             }
             webConfiguration.Save();
-
+            return connectionStringItems;
         }
 
-        public static void ResetCredentials(string webConfigPath, string connectionStringName, string userName, string password)
-        {
-            if (!File.Exists(webConfigPath))
-                throw new Exception($"{webConfigPath} does not exist");
-
-            var webConfiguration = GetWebConfigurationFromFile(webConfigPath);
-
-            var connectionStringSettingsCollection = ((ConnectionStringsSection)webConfiguration.GetSection("connectionStrings")).ConnectionStrings;
-
-            var entry = connectionStringSettingsCollection[connectionStringName];
-            entry.ConnectionString = UpdateUserPasswordInConnectionString(entry.ConnectionString, userName, password);
-            webConfiguration.Save();
-        }
 
         private static string UpdateUserPasswordInConnectionString(string connectionString,string userName, string newPassword)
         {
@@ -75,6 +69,26 @@ namespace GitUtils
         private static bool IsEntityFrameworkConnectionString(string setting)
         {
             return setting.Contains("metadata=res:");
+        }
+    }
+
+    public class UpdatedConnectionStrings
+    {
+        private readonly List<string> items = new List<string>();
+
+        public List<string> Items
+        {
+            get { return items; }
+        }
+
+        public int Count
+        {
+            get { return items.Count; }
+        }
+
+        public void Add(string connectionStringName)
+        {
+            Items.Add(connectionStringName);
         }
     }
 }
