@@ -18,7 +18,7 @@ namespace GitUtils
             var connectionStringItems = new UpdatedConnectionStrings();
 
             if(!File.Exists(webConfigPath))
-                throw new Exception($"{webConfigPath} does not exist");
+                throw new Exception($"{webConfigPath} does not exist!");
             var webConfiguration = GetWebConfigurationFromFile(webConfigPath);
 
             ConnectionStringSettingsCollection connectionStringSettingsCollection = ((ConnectionStringsSection)webConfiguration.GetSection("connectionStrings")).ConnectionStrings;
